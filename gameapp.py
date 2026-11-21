@@ -1,679 +1,858 @@
 
 import streamlit as st
-import random
-import json
-import html
 from openai import OpenAI
+import json
+import random
+
 
 # ==========================================
-# 1. 기본 설정
+# 1. 기본 페이지 설정
 # ==========================================
 
 st.set_page_config(
-    page_title="극본 할리갈리",
+    page_title="극본 구성 요소 할리갈리",
     page_icon="🔔",
     layout="wide"
 )
 
-# OpenAI API KEY 입력
-API_KEY = "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"
-
-client = OpenAI(api_key=API_KEY)
-
-COMPONENTS = ["지문", "대사", "해설"]
-
-PLAYERS = [
-    "1번 학생", "2번 학생", "3번 학생", "4번 학생",
-    "5번 학생", "6번 학생", "7번 학생", "8번 학생"
-]
-
 
 # ==========================================
-# 2. AI 카드 생성
+# 2. 디자인 CSS
 # ==========================================
 
-def make_cards():
-
-    prompt = """
-    너는 초등학교 5학년 국어 교사야.
-
-    극본의 구성 요소를 학습하는 할리갈리 카드 48장을 만들어 줘.
-
-    [카드 구성]
-
-    1. 구성 요소 카드 12장
-       지문 4장, 대사 4장, 해설 4장
-
-    2. 설명 카드 18장
-       지문 설명 6장, 대사 설명 6장, 해설 설명 6장
-
-    3. 예시 카드 18장
-       지문 예시 6장, 대사 예시 6장, 해설 예시 6장
-
-    [개념]
-
-    지문: 인물의 표정, 행동, 움직임, 말투 등을 나타내는 부분.
-    대사: 극본에서 인물이 직접 하는 말.
-    해설: 무대의 배경, 시간, 장소, 상황 등을 설명하는 부분.
-
-    [작성 조건]
-
-    1. 초등학교 5학년 수준으로 작성해.
-    2. 설명은 짧고 명확하게 작성해.
-    3. 예시는 실제 극본에서 사용할 수 있는 문장으로 작성해.
-    4. 지문 예시는 반드시 괄호를 사용해.
-    5. 대사 예시는 인물 이름과 말로 구성해.
-    6. 해설 예시는 무대의 배경이나 상황을 설명해.
-    7. 내용이 서로 중복되지 않도록 해.
-    8. 구성 요소 카드의 content는 '지문', '대사', '해설' 중 하나만 사용해.
-
-    반드시 다음 JSON 형식으로 출력해.
-
-    {
-      "cards": [
-        {
-          "type": "지문",
-          "category": "구성요소",
-          "content": "지문"
-        },
-        {
-          "type": "지문",
-          "category": "설명",
-          "content": "인물의 행동이나 표정 등을 나타내는 부분"
-        },
-        {
-          "type": "지문",
-          "category": "예시",
-          "content": "(민수가 깜짝 놀라 뒤로 물러선다.)"
-        }
-      ]
+st.markdown("""
+<style>
+    .stApp {
+        background-color: #FFF8ED;
     }
 
-    총 48장을 정확하게 만들어 줘.
-    """
+    h1, h2, h3 {
+        color: #5B4636;
+    }
+
+    .main-title {
+        text-align: center;
+        color: #654C3B;
+        font-size: 38px;
+        font-weight: bold;
+        padding: 15px;
+    }
+
+    .sub-title {
+        text-align: center;
+        color: #A1846C;
+        font-size: 17px;
+        margin-bottom: 25px;
+    }
+
+    .player-card {
+        background-color: white;
+        border: 3px solid #E8D9C6;
+        border-radius: 18px;
+        padding: 15px;
+        text-align: center;
+        min-height: 220px;
+        box-shadow: 2px 3px 8px rgba(0,0,0,0.06);
+        margin-bottom: 10px;
+    }
+
+    .active-player {
+        border: 3px solid #F2A65A;
+        background-color: #FFF0D9;
+    }
+
+    .card-content {
+        background-color: #FFFCF6;
+        border: 2px solid #E8D9C6;
+        border-radius: 12px;
+        min-height: 110px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px;
+        font-size: 17px;
+        font-weight: bold;
+        color: #594638;
+        word-break: keep-all;
+        line-height: 1.5;
+    }
+
+    .empty-card {
+        color: #B9AA99;
+        font-weight: normal;
+    }
+
+    .turn-box {
+        background-color: #FFF0D9;
+        border: 2px solid #F2C58D;
+        border-radius: 15px;
+        padding: 18px;
+        text-align: center;
+        margin-bottom: 15px;
+    }
+
+    .message-box {
+        background-color: white;
+        border-radius: 12px;
+        padding: 12px;
+        text-align: center;
+        color: #8B694D;
+        margin: 10px 0;
+    }
+
+    div.stButton > button {
+        border-radius: 12px;
+        font-weight: bold;
+    }
+
+    .bell-text {
+        font-size: 25px;
+        text-align: center;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+
+# ==========================================
+# 3. 사이드바 - API 키 입력 및 게임 설정
+# ==========================================
+
+st.sidebar.title("⚙️ 게임 설정")
+
+api_key = st.sidebar.text_input(
+    "OpenAI API Key",
+    type="password",
+    placeholder="sk-...",
+    help="본인의 OpenAI API 키를 입력하세요."
+)
+
+st.sidebar.caption(
+    "🔒 API 키는 코드에 저장되지 않습니다."
+)
+
+st.sidebar.divider()
+
+st.sidebar.subheader("🎮 참여 인원")
+
+player_count = st.sidebar.selectbox(
+    "게임에 참여할 인원",
+    options=[2, 3, 4, 5, 6, 7, 8],
+    index=2,
+    format_func=lambda x: f"{x}명",
+    disabled=st.session_state.get("game_started", False)
+)
+
+st.sidebar.caption(
+    "총 48장의 카드를 참여 인원에게 최대한 균등하게 나눕니다."
+)
+
+st.sidebar.divider()
+
+if st.sidebar.button("🔄 새 게임 준비", use_container_width=True):
+    for key in [
+        "game_started",
+        "decks",
+        "table_piles",
+        "collected",
+        "players",
+        "current_turn",
+        "game_message",
+        "game_ended"
+    ]:
+        st.session_state.pop(key, None)
+
+    st.rerun()
+
+
+# ==========================================
+# 4. AI 카드 생성 함수
+# ==========================================
+
+def generate_cards(api_key):
+
+    client = OpenAI(api_key=api_key)
+
+    prompt = """
+당신은 초등학교 5학년 국어 교과 수업 자료를 만드는 전문가입니다.
+
+극본의 구성 요소인 지문, 대사, 해설을 학습하기 위한
+할리갈리 게임 카드 48장을 만들어 주세요.
+
+카드는 다음과 같이 정확히 구성합니다.
+
+[1] 구성 요소 카드 12장
+- 지문 4장
+- 대사 4장
+- 해설 4장
+
+[2] 설명 카드 18장
+- 지문 설명 6장
+- 대사 설명 6장
+- 해설 설명 6장
+
+[3] 예시 카드 18장
+- 지문 예시 6장
+- 대사 예시 6장
+- 해설 예시 6장
+
+각 카드에는 다음 세 가지 정보가 있어야 합니다.
+
+1. type: 정답 구성 요소
+   - 지문
+   - 대사
+   - 해설
+
+2. kind: 카드 종류
+   - 구성 요소
+   - 설명
+   - 예시
+
+3. text: 학생에게 보여 줄 문장
+
+[작성 기준]
+
+- 초등학교 5학년 학생이 이해할 수 있는 쉬운 표현을 사용합니다.
+- 지문은 인물의 표정, 행동, 말투 등을 나타냅니다.
+- 대사는 극본에서 인물이 직접 하는 말입니다.
+- 해설은 장면의 배경이나 상황 등을 설명합니다.
+- 설명 카드에는 해당 구성 요소의 특징을 설명합니다.
+- 예시 카드는 실제 극본에 나올 법한 문장으로 작성합니다.
+- 카드 문장은 짧고 명확하게 작성합니다.
+- 같은 문장을 반복하지 않습니다.
+- 지문과 해설이 혼동되지 않도록 구분을 명확히 합니다.
+- 대사에는 인물의 이름과 직접 하는 말을 포함해도 좋습니다.
+
+반드시 아래 JSON 형식으로만 출력하세요.
+
+{
+  "cards": [
+    {
+      "type": "지문",
+      "kind": "구성 요소",
+      "text": "고개를 끄덕이며 웃는다."
+    }
+  ]
+}
+
+카드는 반드시 총 48장이어야 합니다.
+JSON 이외의 설명은 출력하지 마세요.
+"""
 
     response = client.responses.create(
         model="gpt-5.5",
         input=prompt
     )
 
-    result = json.loads(response.output_text)
-    cards = result["cards"]
+    result_text = response.output_text
 
-    expected = {
-        ("지문", "구성요소"): 4,
-        ("대사", "구성요소"): 4,
-        ("해설", "구성요소"): 4,
-        ("지문", "설명"): 6,
-        ("대사", "설명"): 6,
-        ("해설", "설명"): 6,
-        ("지문", "예시"): 6,
-        ("대사", "예시"): 6,
-        ("해설", "예시"): 6
-    }
+    data = json.loads(result_text)
 
+    cards = data["cards"]
+
+    # 카드 수 검증
     if len(cards) != 48:
-        raise ValueError("카드가 48장이 아닙니다.")
-
-    for key, count in expected.items():
-
-        actual = sum(
-            1 for card in cards
-            if (card["type"], card["category"]) == key
+        raise ValueError(
+            f"카드가 48장이 아닙니다. 현재 {len(cards)}장입니다."
         )
 
-        if actual != count:
-            raise ValueError(f"{key} 카드 수가 맞지 않습니다.")
+    valid_types = ["지문", "대사", "해설"]
+    valid_kinds = ["구성 요소", "설명", "예시"]
 
-    random.shuffle(cards)
+    # 카드 형식 검증
+    for card in cards:
+        if card["type"] not in valid_types:
+            raise ValueError("잘못된 구성 요소 카드가 있습니다.")
+
+        if card["kind"] not in valid_kinds:
+            raise ValueError("잘못된 카드 종류가 있습니다.")
+
+        if not card.get("text"):
+            raise ValueError("문장이 없는 카드가 있습니다.")
+
+    # 카드 종류별 개수 검증
+    expected = {
+        ("구성 요소", "지문"): 4,
+        ("구성 요소", "대사"): 4,
+        ("구성 요소", "해설"): 4,
+
+        ("설명", "지문"): 6,
+        ("설명", "대사"): 6,
+        ("설명", "해설"): 6,
+
+        ("예시", "지문"): 6,
+        ("예시", "대사"): 6,
+        ("예시", "해설"): 6
+    }
+
+    actual = {}
+
+    for card in cards:
+        key = (card["kind"], card["type"])
+        actual[key] = actual.get(key, 0) + 1
+
+    if actual != expected:
+        raise ValueError(
+            "카드 종류별 개수가 정확하지 않습니다. 다시 생성해 주세요."
+        )
 
     return cards
 
 
 # ==========================================
-# 3. 게임 시작
+# 5. 게임 초기화 및 카드 배분
 # ==========================================
 
-def start_game(player_count):
+def initialize_game(cards, count):
 
-    cards = make_cards()
+    random.shuffle(cards)
 
-    # 선택한 인원수에 맞게 균등 배분
-    decks = [[] for _ in range(player_count)]
-
-    for i, card in enumerate(cards):
-        decks[i % player_count].append(card)
-
-    for deck in decks:
-        random.shuffle(deck)
-
-    st.session_state.player_count = player_count
-    st.session_state.decks = decks
-
-    # 각 참여자가 뒤집은 카드 더미
-    st.session_state.table_piles = [
-        [] for _ in range(player_count)
+    players = [
+        f"플레이어 {i + 1}"
+        for i in range(count)
     ]
 
-    st.session_state.turn = 0
-    st.session_state.started = True
-    st.session_state.game_over = False
-    st.session_state.message = "게임을 시작합니다!"
-    st.session_state.winner = None
+    decks = [[] for _ in range(count)]
+    table_piles = [[] for _ in range(count)]
+    collected = [0 for _ in range(count)]
+
+    # 48장을 참여 인원에게 순서대로 균등 배분
+    for i, card in enumerate(cards):
+        decks[i % count].append(card)
+
+    st.session_state.players = players
+    st.session_state.decks = decks
+    st.session_state.table_piles = table_piles
+    st.session_state.collected = collected
+
+    st.session_state.current_turn = 0
+    st.session_state.game_started = True
+    st.session_state.game_ended = False
+
+    st.session_state.game_message = (
+        "게임을 시작합니다! 첫 번째 플레이어가 카드를 뒤집으세요."
+    )
 
 
 # ==========================================
-# 4. 다음 차례 정하기
-# ==========================================
-
-def next_turn(current):
-
-    decks = st.session_state.decks
-    player_count = st.session_state.player_count
-
-    for step in range(1, player_count + 1):
-
-        next_player = (current + step) % player_count
-
-        if len(decks[next_player]) > 0:
-            return next_player
-
-    # 다른 참여자가 없으면 현재 참여자가 계속 진행
-    return current
-
-
-# ==========================================
-# 5. 현재 보이는 카드 확인
+# 6. 공개된 카드 확인
 # ==========================================
 
 def get_visible_cards():
 
-    visible = []
+    visible_cards = []
 
-    for i, pile in enumerate(st.session_state.table_piles):
+    for pile in st.session_state.table_piles:
 
-        if pile:
-            visible.append({
-                "player": i,
-                "card": pile[-1]
-            })
+        if len(pile) > 0:
+            visible_cards.append(pile[-1])
 
-    return visible
+    return visible_cards
 
 
 # ==========================================
-# 6. 종을 누를 수 있는지 확인
+# 7. 같은 구성 요소인지 판정
 # ==========================================
 
 def is_match():
 
-    visible = get_visible_cards()
+    visible_cards = get_visible_cards()
 
-    if len(visible) < 2:
+    # 최소 2장의 카드가 공개되어야 함
+    if len(visible_cards) < 2:
         return False
 
-    types = [
-        item["card"]["type"]
-        for item in visible
-    ]
+    first_type = visible_cards[0]["type"]
 
-    return len(set(types)) == 1
-
-
-# ==========================================
-# 7. 게임 결과 계산
-# ==========================================
-
-def finish_game():
-
-    player_count = st.session_state.player_count
-
-    scores = []
-
-    for i in range(player_count):
-
-        deck_count = len(st.session_state.decks[i])
-        table_count = len(st.session_state.table_piles[i])
-
-        scores.append(deck_count + table_count)
-
-    max_score = max(scores)
-
-    winners = [
-        f"{i + 1}번 학생"
-        for i, score in enumerate(scores)
-        if score == max_score
-    ]
-
-    st.session_state.game_over = True
-    st.session_state.winner = ", ".join(winners)
-    st.session_state.final_scores = scores
-
-
-# ==========================================
-# 8. 카드 뒤집기
-# ==========================================
-
-def flip_card(player):
-
-    if st.session_state.game_over:
-        return
-
-    if player != st.session_state.turn:
-        return
-
-    deck = st.session_state.decks[player]
-
-    if not deck:
-        return
-
-    # 카드 한 장을 뒤집어 자신의 더미 위에 놓기
-    card = deck.pop(0)
-
-    st.session_state.table_piles[player].append(card)
-
-    st.session_state.message = (
-        f"{player + 1}번 학생이 카드를 뒤집었습니다!"
+    return all(
+        card["type"] == first_type
+        for card in visible_cards
     )
 
-    # 다음 참여자에게 차례 이동
-    st.session_state.turn = next_turn(player)
 
-    # 모든 카드가 소진되었을 때
-    if all(len(d) == 0 for d in st.session_state.decks):
+# ==========================================
+# 8. 모든 카드가 소진되었는지 확인
+# ==========================================
 
-        # 같은 구성 요소라면 종을 누를 기회를 남김
-        if not is_match():
-            finish_game()
+def all_decks_empty():
+
+    return all(
+        len(deck) == 0
+        for deck in st.session_state.decks
+    )
 
 
 # ==========================================
-# 9. 종 누르기
+# 9. 다음 차례 플레이어 찾기
 # ==========================================
 
-def ring_bell(player):
+def find_next_player(start_index):
 
-    if st.session_state.game_over:
+    decks = st.session_state.decks
+    count = len(decks)
+
+    for i in range(1, count + 1):
+
+        next_index = (start_index + i) % count
+
+        if len(decks[next_index]) > 0:
+            return next_index
+
+    return start_index
+
+
+# ==========================================
+# 10. 카드 뒤집기
+# ==========================================
+
+def draw_card(player_index):
+
+    if st.session_state.game_ended:
         return
 
-    if not is_match():
-
-        st.session_state.message = (
-            f"아쉽습니다! {player + 1}번 학생, "
-            "아직 같은 구성 요소가 아닙니다."
+    if player_index != st.session_state.current_turn:
+        st.session_state.game_message = (
+            "아직 자신의 차례가 아닙니다!"
         )
-
-        # 모든 카드가 소진되었다면 게임 종료
-        if all(len(d) == 0 for d in st.session_state.decks):
-            finish_game()
-
         return
 
-    # 테이블 위의 모든 카드를 종을 누른 학생이 가져감
-    collected = []
+    deck = st.session_state.decks[player_index]
 
-    for pile in st.session_state.table_piles:
-        collected.extend(pile)
+    if len(deck) == 0:
+        st.session_state.game_message = (
+            "더 이상 뒤집을 카드가 없습니다."
+        )
+        return
 
-    random.shuffle(collected)
+    # 카드 한 장 뒤집기
+    card = deck.pop()
 
-    st.session_state.decks[player].extend(collected)
+    st.session_state.table_piles[player_index].append(card)
 
-    collected_count = len(collected)
-
-    # 모든 뒤집은 카드 더미 비우기
-    st.session_state.table_piles = [
-        [] for _ in range(st.session_state.player_count)
-    ]
-
-    # 종을 누른 학생부터 다시 시작
-    st.session_state.turn = player
-
-    st.session_state.message = (
-        f"🎉 {player + 1}번 학생 성공! "
-        f"카드 {collected_count}장을 모두 가져갔습니다!"
+    st.session_state.game_message = (
+        f"{st.session_state.players[player_index]}이(가) "
+        "카드를 뒤집었습니다."
     )
 
-    # 게임이 끝났는지 확인
-    if all(len(d) == 0 for d in st.session_state.decks):
+    # 다음 플레이어에게 차례 이동
+    next_player = find_next_player(player_index)
+
+    st.session_state.current_turn = next_player
+
+    # 모든 카드가 소진되고 정답 조합이 없으면 종료
+    if all_decks_empty() and not is_match():
         finish_game()
 
 
 # ==========================================
-# 10. 화면 디자인
+# 11. 종 누르기
 # ==========================================
 
-st.markdown("""
-<style>
+def ring_bell(player_index):
 
-.stApp {
-    background-color: #FFF9EF;
-}
+    if st.session_state.game_ended:
+        return
 
-.main-title {
-    text-align: center;
-    font-size: 42px;
-    font-weight: 900;
-    color: #51412F;
-    padding: 15px;
-}
+    if is_match():
 
-.sub-title {
-    text-align: center;
-    font-size: 18px;
-    color: #86735C;
-    margin-bottom: 25px;
-}
+        total_cards = 0
 
-.player-box {
-    background-color: white;
-    border: 3px solid #F0DDBD;
-    border-radius: 18px;
-    padding: 12px 5px;
-    text-align: center;
-    min-height: 115px;
-}
+        # 테이블 위에 놓인 모든 카드 더미 획득
+        for pile in st.session_state.table_piles:
+            total_cards += len(pile)
 
-.card {
-    background: linear-gradient(135deg, #FFFFFF, #FFF1D9);
-    border: 4px solid #EBCB9B;
-    border-radius: 17px;
-    min-height: 165px;
-    padding: 18px 12px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    font-size: 20px;
-    font-weight: bold;
-    color: #453B32;
-    margin: 10px 0;
-    word-break: keep-all;
-    overflow-wrap: break-word;
-}
+        st.session_state.collected[player_index] += total_cards
 
-.card-empty {
-    background: #F2E8D8;
-    border: 3px dashed #D6C4A8;
-    color: #A08E76;
-    font-size: 38px;
-}
+        # 테이블 카드 더미 비우기
+        st.session_state.table_piles = [
+            [] for _ in st.session_state.players
+        ]
 
-.stButton > button {
-    border-radius: 12px;
-    font-weight: bold;
-    min-height: 45px;
-}
+        # 종을 누른 사람이 다음 차례
+        st.session_state.current_turn = player_index
 
-</style>
-""", unsafe_allow_html=True)
+        st.session_state.game_message = (
+            f"🎉 정답! {st.session_state.players[player_index]}이(가) "
+            f"카드 {total_cards}장을 가져갔습니다!"
+        )
+
+        # 모든 카드가 소진되었다면 게임 종료
+        if all_decks_empty():
+            finish_game()
+
+    else:
+
+        st.session_state.game_message = (
+            f"아쉽습니다! {st.session_state.players[player_index]}의 "
+            "종 누르기: 아직 같은 구성 요소가 아닙니다."
+        )
 
 
 # ==========================================
-# 11. 제목
+# 12. 게임 종료 및 점수 계산
 # ==========================================
 
-st.markdown(
-    '<div class="main-title">🔔 극본 할리갈리 🔔</div>',
-    unsafe_allow_html=True
-)
+def finish_game():
 
-st.markdown(
-    '<div class="sub-title">'
-    '지문! 대사! 해설! 같은 구성 요소가 모이면 종을 울려라!'
-    '</div>',
-    unsafe_allow_html=True
-)
+    st.session_state.game_ended = True
+    st.session_state.game_started = False
 
+    players = st.session_state.players
+    decks = st.session_state.decks
+    table_piles = st.session_state.table_piles
+    collected = st.session_state.collected
 
-# ==========================================
-# 12. 게임 준비 및 인원 선택
-# ==========================================
+    scores = []
 
-if "started" not in st.session_state:
-    st.session_state.started = False
+    for i in range(len(players)):
 
-if not st.session_state.started:
+        remaining_cards = (
+            len(decks[i]) +
+            len(table_piles[i])
+        )
 
-    st.markdown("### 🎮 게임 준비")
+        total_score = collected[i] + remaining_cards
 
-    st.info("""
-    총 48장의 카드로 게임을 진행합니다.
+        scores.append(total_score)
 
-    구성 요소 카드 12장 + 설명 카드 18장 + 예시 카드 18장
+    max_score = max(scores)
 
-    참여 인원을 선택하면 카드가 자동으로 균등 배분됩니다.
-    """)
+    winners = [
+        players[i]
+        for i, score in enumerate(scores)
+        if score == max_score
+    ]
 
-    player_count = st.selectbox(
-        "👧👦 게임 참여 인원",
-        options=[2, 3, 4, 5, 6, 7, 8],
-        index=2,
-        format_func=lambda x: f"{x}명"
-    )
+    if len(winners) == 1:
+        winner_message = (
+            f"🏆 최종 우승자는 {winners[0]}입니다!"
+        )
+    else:
+        winner_message = (
+            f"🏆 공동 우승! {', '.join(winners)}"
+        )
 
-    base, remainder = divmod(48, player_count)
-
-    st.write(
-        f"1인당 기본 {base}장씩 배분됩니다. "
-        f"남는 {remainder}장은 앞 순서 참여자부터 1장씩 더 받습니다."
-    )
-
-    if st.button(
-        "🎲 카드 섞고 게임 시작!",
-        use_container_width=True
-    ):
-
-        if not API_KEY or "여기에_" in API_KEY:
-            st.error("OpenAI API Key를 먼저 입력해 주세요.")
-
-        else:
-
-            with st.spinner("AI가 극본 카드를 만들고 있습니다..."):
-
-                try:
-                    start_game(player_count)
-                    st.rerun()
-
-                except Exception as e:
-                    st.error(f"게임 준비 오류: {e}")
-
-    st.stop()
-
-
-# ==========================================
-# 13. 게임 상황
-# ==========================================
-
-st.markdown("### 📢 게임 상황")
-
-st.info(st.session_state.message)
-
-if not st.session_state.game_over:
-
-    current = st.session_state.turn
-
-    st.markdown(
-        f"<h3 style='text-align:center;color:#E65D43;'>"
-        f"⭐ {current + 1}번 학생 차례 ⭐</h3>",
-        unsafe_allow_html=True
+    st.session_state.game_message = (
+        "🎊 게임 종료! " + winner_message
     )
 
 
 # ==========================================
-# 14. 참여자 카드 화면
+# 13. 점수판
 # ==========================================
 
-st.markdown("### 🃏 참여자별 카드")
+def show_scores():
 
-player_count = st.session_state.player_count
+    st.subheader("🏆 현재 점수")
 
-# 최대 4명씩 한 줄에 배치
-for start in range(0, player_count, 4):
+    players = st.session_state.players
+    decks = st.session_state.decks
+    table_piles = st.session_state.table_piles
+    collected = st.session_state.collected
 
-    end = min(start + 4, player_count)
+    cols = st.columns(len(players))
 
-    cols = st.columns(end - start)
+    for i, col in enumerate(cols):
 
-    for i, col in zip(range(start, end), cols):
+        remaining = (
+            len(decks[i]) +
+            len(table_piles[i])
+        )
+
+        score = collected[i] + remaining
 
         with col:
 
-            is_turn = (
-                i == st.session_state.turn
-                and not st.session_state.game_over
+            st.metric(
+                label=players[i],
+                value=f"{score}장"
             )
 
-            remaining = len(st.session_state.decks[i])
-            pile = st.session_state.table_piles[i]
 
-            st.markdown(
-                f'<div class="player-box">'
-                f'<h3>{i + 1}번 학생</h3>'
-                f'<p>남은 카드: {remaining}장</p>'
-                f'<p>{"⭐ 내 차례!" if is_turn else "차례 기다리는 중"}</p>'
-                f'</div>',
-                unsafe_allow_html=True
-            )
+# ==========================================
+# 14. 플레이어 카드 화면
+# ==========================================
 
-            # 가장 최근에 뒤집은 카드 한 장만 공개
-            if pile:
+def show_players():
 
-                visible_card = pile[-1]
+    players = st.session_state.players
+    decks = st.session_state.decks
+    table_piles = st.session_state.table_piles
 
-                content = html.escape(
-                    visible_card["content"]
+    current_turn = st.session_state.current_turn
+
+    # 한 줄에 최대 4명씩 표시
+    for start in range(0, len(players), 4):
+
+        end = min(start + 4, len(players))
+
+        cols = st.columns(4)
+
+        for i in range(start, end):
+
+            with cols[i - start]:
+
+                is_active = (
+                    i == current_turn and
+                    not st.session_state.game_ended
                 )
 
-                st.markdown(
-                    f'<div class="card">{content}</div>',
-                    unsafe_allow_html=True
-                )
+                if is_active:
+                    st.markdown(
+                        f"### ⭐ {players[i]}"
+                    )
+                else:
+                    st.markdown(
+                        f"### {players[i]}"
+                    )
 
                 st.caption(
-                    f"뒤집은 카드: {len(pile)}장"
+                    f"남은 카드: {len(decks[i])}장"
                 )
 
-            else:
+                pile = table_piles[i]
 
-                st.markdown(
-                    '<div class="card card-empty">🃏</div>',
-                    unsafe_allow_html=True
+                if pile:
+
+                    top_card = pile[-1]
+
+                    st.markdown(
+                        f"""
+                        <div class="card-content">
+                            {top_card["text"]}
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                    st.caption(
+                        f"테이블에 쌓인 카드: {len(pile)}장"
+                    )
+
+                else:
+
+                    st.markdown(
+                        """
+                        <div class="card-content empty-card">
+                            아직 뒤집은 카드가 없습니다.
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                    st.caption("테이블에 쌓인 카드: 0장")
+
+                # 카드 뒤집기 버튼
+                draw_disabled = (
+                    not is_active or
+                    len(decks[i]) == 0 or
+                    st.session_state.game_ended
                 )
 
-                st.caption("아직 뒤집은 카드가 없습니다.")
+                if st.button(
+                    "🃏 카드 뒤집기",
+                    key=f"draw_{i}",
+                    use_container_width=True,
+                    disabled=draw_disabled
+                ):
 
-            # 카드 뒤집기 버튼
-            if st.button(
-                "🃏 카드 뒤집기",
-                key=f"flip_{i}",
-                disabled=(
-                    not is_turn
-                    or st.session_state.game_over
-                    or remaining == 0
-                ),
-                use_container_width=True
-            ):
+                    draw_card(i)
+                    st.rerun()
 
-                flip_card(i)
-                st.rerun()
+                # 종 누르기 버튼
+                bell_disabled = st.session_state.game_ended
 
-            # 종 버튼
-            if st.button(
-                "🔔 종 누르기!",
-                key=f"bell_{i}",
-                disabled=st.session_state.game_over,
-                use_container_width=True
-            ):
+                if st.button(
+                    "🔔 종 치기!",
+                    key=f"bell_{i}",
+                    use_container_width=True,
+                    disabled=bell_disabled
+                ):
 
-                ring_bell(i)
-                st.rerun()
+                    ring_bell(i)
+                    st.rerun()
+
+        st.write("")
 
 
 # ==========================================
-# 15. 공개된 카드 현황
+# 15. 메인 화면
 # ==========================================
 
-st.divider()
+st.markdown(
+    '<div class="main-title">🔔 극본 구성 요소 할리갈리</div>',
+    unsafe_allow_html=True
+)
 
-st.markdown("### 🔎 현재 공개된 카드")
-
-visible_cards = get_visible_cards()
-
-if visible_cards:
-
-    cols = st.columns(3)
-
-    counts = {
-        component: sum(
-            1 for item in visible_cards
-            if item["card"]["type"] == component
-        )
-        for component in COMPONENTS
-    }
-
-    for i, component in enumerate(COMPONENTS):
-
-        with cols[i]:
-
-            st.metric(
-                component,
-                f"{counts[component]}장"
-            )
-
-else:
-
-    st.write("아직 공개된 카드가 없습니다.")
+st.markdown(
+    '<div class="sub-title">지문, 대사, 해설을 찾아라!</div>',
+    unsafe_allow_html=True
+)
 
 
-# ==========================================
-# 16. 최종 결과
-# ==========================================
+# 게임 시작 전 화면
+if not st.session_state.get("game_started", False) and not st.session_state.get("game_ended", False):
 
-if st.session_state.game_over:
+    st.markdown("---")
 
-    st.balloons()
-
-    st.markdown("## 🏆 게임 종료!")
-
-    st.success(
-        f"최종 우승자: {st.session_state.winner}"
+    st.markdown(
+        """
+        <div style="
+            background-color:white;
+            padding:25px;
+            border-radius:18px;
+            text-align:center;
+        ">
+            <h2>🎮 게임 준비</h2>
+            <p>사이드바에서 OpenAI API Key를 입력하고</p>
+            <p>참여 인원을 선택한 뒤 게임을 시작하세요.</p>
+            <h3>🃏 총 48장의 카드</h3>
+            <p>구성 요소 카드 12장 · 설명 카드 18장 · 예시 카드 18장</p>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
-    st.markdown("### 최종 카드 보유 수")
+    st.write("")
 
-    cols = st.columns(4)
+    if st.button(
+        "🎉 게임 시작하기",
+        use_container_width=True,
+        type="primary"
+    ):
 
-    for i, score in enumerate(st.session_state.final_scores):
+        if not api_key:
 
-        with cols[i % 4]:
+            st.error(
+                "사이드바에 OpenAI API Key를 입력해 주세요."
+            )
 
-            st.metric(
-                f"{i + 1}번 학생",
-                f"{score}장"
+        else:
+
+            try:
+
+                with st.spinner(
+                    "AI가 게임 카드 48장을 만들고 있습니다. 잠시 기다려 주세요..."
+                ):
+
+                    cards = generate_cards(api_key)
+
+                initialize_game(cards, player_count)
+
+                st.success("카드 준비가 완료되었습니다!")
+
+                st.rerun()
+
+            except Exception as e:
+
+                st.error(
+                    f"카드 생성 중 오류가 발생했습니다: {str(e)}"
+                )
+
+
+# 게임 진행 화면
+if st.session_state.get("game_started", False):
+
+    st.markdown("---")
+
+    st.markdown(
+        f"""
+        <div class="turn-box">
+            <h2>🎯 현재 차례</h2>
+            <h1>{st.session_state.players[st.session_state.current_turn]}</h1>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        f"""
+        <div class="message-box">
+            {st.session_state.game_message}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.info(
+        "공개된 카드의 정답 구성 요소가 모두 같으면 "
+        "가장 먼저 종을 누르세요!"
+    )
+
+    show_players()
+
+    st.markdown("---")
+
+    show_scores()
+
+
+# 게임 종료 화면
+if st.session_state.get("game_ended", False):
+
+    st.markdown("---")
+
+    st.success(
+        st.session_state.game_message
+    )
+
+    st.subheader("🏆 최종 결과")
+
+    players = st.session_state.players
+    decks = st.session_state.decks
+    table_piles = st.session_state.table_piles
+    collected = st.session_state.collected
+
+    final_scores = []
+
+    for i in range(len(players)):
+
+        score = (
+            collected[i] +
+            len(decks[i]) +
+            len(table_piles[i])
+        )
+
+        final_scores.append(score)
+
+    ranking = sorted(
+        zip(players, final_scores),
+        key=lambda x: x[1],
+        reverse=True
+    )
+
+    for rank, (name, score) in enumerate(ranking, start=1):
+
+        if rank == 1:
+            st.markdown(
+                f"### 🥇 {rank}위 {name} - {score}장"
+            )
+        elif rank == 2:
+            st.markdown(
+                f"### 🥈 {rank}위 {name} - {score}장"
+            )
+        elif rank == 3:
+            st.markdown(
+                f"### 🥉 {rank}위 {name} - {score}장"
+            )
+        else:
+            st.write(
+                f"{rank}위 {name} - {score}장"
             )
 
     if st.button(
-        "🔄 새로운 게임 시작",
+        "🔄 새 게임 시작",
         use_container_width=True
     ):
 
-        st.session_state.started = False
-        st.rerun()
+        for key in [
+            "game_started",
+            "decks",
+            "table_piles",
+            "collected",
+            "players",
+            "current_turn",
+            "game_message",
+            "game_ended"
+        ]:
+            st.session_state.pop(key, None)
 
-
-# ==========================================
-# 17. 게임 재시작
-# ==========================================
-
-if not st.session_state.game_over:
-
-    st.divider()
-
-    if st.button(
-        "🔄 게임 처음부터 다시 시작",
-        use_container_width=True
-    ):
-
-        st.session_state.started = False
         st.rerun()
