@@ -16,7 +16,7 @@ st.set_page_config(
 )
 
 # OpenAI API KEY 입력
-API_KEY = "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"
+API_KEY = "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"
 
 client = OpenAI(api_key=API_KEY)
 
